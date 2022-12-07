@@ -333,9 +333,10 @@ namespace ExpNeco
                 {
                     using (StreamWriter sw = new StreamWriter(ScanFileName, true))//declare the sream writer class
                     {
-                        string OMRData = $"{OMRBuffer} {msubjcode} {RegFile} {OperatorName}";
+                        string OMRData = $"{OMRBuffer} {msubjcode} {RegFile} {} {OperatorName}";
                         // string.Format("{0} {1} {2} {3}", OMRBuffer, msubjcode, RegFile, myOperator);
                         sw.WriteLine(OMRData);//place content of OMRbuffer into the file.
+                        sw.Flush();
                         sw.Close();//close the stream writer.
                     }
 
