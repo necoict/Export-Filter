@@ -30,9 +30,9 @@ namespace ExpNeco
 
        
     [Guid("472C2800-572C-4058-8750-A78D42C7CDAE"),ClassInterface(ClassInterfaceType.None)]//Implementing the class interface above
-    public class ExpFilter:IExpNeco 
+    public class ExpFilter : IExpNeco 
     {
-        string ExportFolder,OperatorName;
+        string ExportFolder,_operatorName,_operatorId;
         //long mBatchNo;
         string ScanFileName;
          string msubjcode;
@@ -173,7 +173,7 @@ namespace ExpNeco
                 var BatchFileName = _rHelper.BatchNumber;//  ReadRegistry("batchnumber");
                 var SOSInpFileName = _rHelper.SOSInpBatchFileName;// ReadRegistry("SOSInpBatchFileName");
                 RegFile = BatchFileName;
-
+                _operatorId = _rHelper.OperatorId.ToUpper();
                 //MessageBox.Show($"{BatchNo.ToString().Trim()} VS {SOSInpFileName.Trim()}");
 
                 if (BatchNo.ToString().Trim() != SOSInpFileName.Trim())
@@ -187,19 +187,19 @@ namespace ExpNeco
                     //WriteBatchnumber(BatchFileName);
 
                 }
-  
 
-                OperatorName = Operator.Trim();
+
+                _operatorName = Operator.Trim();
                 //mySupervisor =  ReadRegistry("Supervisor");
                 msubjcode = _rHelper.SubjCode;// ReadRegistry("subjCode");
 
-                if (string.IsNullOrEmpty(OperatorName))
+                if (string.IsNullOrEmpty(_operatorName))
                 {
-                    OperatorName = _rHelper.UID;// ReadRegistry("UID");
+                    _operatorName = _rHelper.UID;// ReadRegistry("UID");
                 }
 
                 ScanFileName = $"{ExportFolder}\\{BatchFileName}";
-
+                
 
 
             }
@@ -217,7 +217,17 @@ namespace ExpNeco
                 var _file = Path.GetFileName(ScanFileName);
                 string _shrtsubj = _rHelper.ShortSubj;
                 var _status = Status;
-                if(_rHelper.Job == "Obj" && _rHelper.ExamType == "SSCE")
+
+                if (string.IsNullOrEmpty(_operatorId) || string.IsNullOrEmpty(_operatorName))
+                {
+                    var msg = $"The operator Id cannot be empty for {_rHelper.UID} \n" +
+                          "Please stop the batch and login again to continue";
+                    MessageBox.Show(msg, "Export record", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    _status = 0;
+                    return;
+                }
+
+                if (_rHelper.Job == "Obj" && _rHelper.ExamType == "SSCE")
                 {
                     if (_file.Length < 11)
                     {
@@ -326,14 +336,14 @@ namespace ExpNeco
                
                 
                
-
+                
                
 
                 if (_status == 1)//check if sheet status is good(ie 1 for good, 0 for bad sheet)
                 {
                     using (StreamWriter sw = new StreamWriter(ScanFileName, true))//declare the sream writer class
                     {
-                        string OMRData = $"{OMRBuffer} {msubjcode} {RegFile} {} {OperatorName}";
+                        string OMRData = $"{OMRBuffer} {msubjcode} {RegFile} {_operatorName}:{_operatorId}";
                         // string.Format("{0} {1} {2} {3}", OMRBuffer, msubjcode, RegFile, myOperator);
                         sw.WriteLine(OMRData);//place content of OMRbuffer into the file.
                         sw.Flush();
@@ -378,98 +388,54 @@ namespace ExpNeco
                     // string encryptedDiscardFile = string.Format($"{discardDir}\\E{RegFile}");
                     if (!File.Exists(ScanFileName)) return;
                     var file = Path.GetFileName(ScanFileName);
+
                     //var deviceid = _rHelper.DeviceId;
                     //if no, move scan file to discard folder
                     File.Move(ScanFileName, discardFile);
                     //WriteBatchnumber("000000.000");//reset batch no to 00000
                     //CryptograhyClass.Encrypt(discardFile, encryptedDiscardFile, CryptograhyClass.EncryptionPWD);
 
+                    //copy scan file to server
+                    //using (System.Diagnostics.Process P = new System.Diagnostics.Process())
+                    //{
+                    //    P.StartInfo.UseShellExecute = false;
+                    //    // You can start any process, HelloWorld is a do-nothing example.
+                    //    P.StartInfo.FileName = "c:\\program files\\necoscan\\scan\\CopyHelperApp.exe";
+                    //    P.StartInfo.Arguments = discardFile;
+                    //    //P.StartInfo.RedirectStandardOutput = true;
+                    //    P.StartInfo.CreateNoWindow = true;
+                    //    P.Start();
+                    //}
 
-                    using (System.Diagnostics.Process P = new System.Diagnostics.Process())
-                    {
-                        P.StartInfo.UseShellExecute = false;
-                        // You can start any process, HelloWorld is a do-nothing example.
-                        P.StartInfo.FileName = "c:\\program files\\necoscan\\scan\\CopyHelperApp.exe";
-                        P.StartInfo.Arguments = discardFile;
-                        //P.StartInfo.RedirectStandardOutput = true;
-                        P.StartInfo.CreateNoWindow = true;
-                        P.Start();
-                    }
-
-                    //var examType = ReadRegistry("examType").ToString();
-                    //var Exams = UtilityClass.GetExams(examType);
-                    //var operatorId = ReadRegistry("OperatorId").ToString();
-                    //var response = NetWorkClass.SaveToServer(Exams, discardFile, RegFile, operatorId, true);
-                    /*if (response == null)
-                    {
-                        MessageBox.Show("File does not contain any data to save", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                    if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                    {
-                        var result = JsonConvert.DeserializeObject<ResponseModel>(response.Content);
-                        MessageBox.Show(result.Message, "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("Unable to save data to server", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }*/
+                   
 
                 }
 
                 if (Commit == true)
                 {
-                    //var fileName = RegFile;
-                    //var scanDir = ReadRegistry("scanDir");
-                    //var tempfile = Path.Combine(scanDir, "temp.neco");
-                    //CryptograhyClass.Encrypt(newFile, tempfile, CryptograhyClass.EncryptionPWD);
-                    //MessageBox.Show(myOperator);
-                    //MessageBox.Show(newFile);
-                    //MessageBox.Show(RegFile);
+                    
+                    //try
+                    //{
+                    //    using (System.Diagnostics.Process P = new System.Diagnostics.Process())
+                    //    {
+                    //        P.StartInfo.UseShellExecute = false;
+                    //        // You can start any process, HelloWorld is a do-nothing example.
+                    //        P.StartInfo.FileName = "c:\\program files\\necoscan\\scan\\CopyHelperApp.exe";
+                    //        P.StartInfo.Arguments = ScanFileName;
+                    //        //P.StartInfo.RedirectStandardOutput = true;
+                    //        P.StartInfo.CreateNoWindow = true;
+                    //        P.Start();
+                    //        //P.WaitForExit();
+                    //        //var exitCode = P.ExitCode;
+                    //    }
 
-                    //var JString = JsonModel.CreateExportJson(scanData);
-                    //MessageBox.Show(JString);
-
-                    //var examType = ReadRegistry("examType").ToString();
-                    //var Exams = UtilityClass.GetExams(examType);
-                    //var operatorId = ReadRegistry("OperatorId").ToString();
-                    //var response = NetWorkClass.SaveToServer(Exams, newFile, RegFile, operatorId);
-                    /*if (response == null)
-                    {
-                        MessageBox.Show("File does not contain any data to save", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                    if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                    {
-                        var result = JsonConvert.DeserializeObject<ResponseModel>(response.Content);
-                        MessageBox.Show(result.Message,"Success",MessageBoxButtons.OK,MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("Unable to save data to server", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }*/
-                    try
-                    {
-                        using (System.Diagnostics.Process P = new System.Diagnostics.Process())
-                        {
-                            P.StartInfo.UseShellExecute = false;
-                            // You can start any process, HelloWorld is a do-nothing example.
-                            P.StartInfo.FileName = "c:\\program files\\necoscan\\scan\\CopyHelperApp.exe";
-                            P.StartInfo.Arguments = ScanFileName;
-                            //P.StartInfo.RedirectStandardOutput = true;
-                            P.StartInfo.CreateNoWindow = true;
-                            P.Start();
-                            //P.WaitForExit();
-                            //var exitCode = P.ExitCode;
-                        }
-                       
-                        //p.StandardOutput.ReadToEnd().Dump();
-                        //System.Diagnostics.Process.Start("c:\\program files\\necoscan\\scan\\CopyHelperApp.exe", newFile);
-                    }
-                    catch(Exception ex)
-                    {
-                        System.Windows.Forms.MessageBox.Show("Error" + ex.Message, "End Batch");
-                    }
+                    //    //p.StandardOutput.ReadToEnd().Dump();
+                    //    //System.Diagnostics.Process.Start("c:\\program files\\necoscan\\scan\\CopyHelperApp.exe", newFile);
+                    //}
+                    //catch(Exception ex)
+                    //{
+                    //    System.Windows.Forms.MessageBox.Show("Error" + ex.Message, "End Batch");
+                    //}
                    
                 }
             }
